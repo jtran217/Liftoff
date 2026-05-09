@@ -52,7 +52,7 @@ Five guided articulation exercises to build speaking habits on top of interview 
 |---|---|
 | Frontend | React + Vite (TypeScript) |
 | Backend | Node.js + Express |
-| Database | SQLite via `better-sqlite3` |
+| Database | SQLite via `node:sqlite` (built into Node 22+) |
 | Transcription | Whisper.cpp (local, Phase 2) |
 | AI review | Anthropic Claude API (Phase 2) |
 | Waveform | WaveSurfer.js v7 |
@@ -66,7 +66,7 @@ No cloud database. No auth. No telemetry. Just a local server and two API keys (
 
 ### Prerequisites
 
-- Node.js 18+
+- Node.js 22+ (required for the built-in `node:sqlite` module)
 - npm or pnpm
 
 ### Installation
@@ -75,6 +75,7 @@ No cloud database. No auth. No telemetry. Just a local server and two API keys (
 git clone https://github.com/yourusername/liftoff.git
 cd liftoff
 npm install
+npm run seed   # populate the question bank (run once)
 ```
 
 ### Run (Phase 1 — no API keys needed)
@@ -134,7 +135,8 @@ liftoff/
 ├── server/
 │   ├── db/
 │   │   ├── schema.sql        # all table definitions
-│   │   └── db.ts             # better-sqlite3 singleton
+│   │   ├── db.ts             # node:sqlite singleton
+│   │   └── seed.ts           # populates question bank (npm run seed)
 │   ├── routes/               # Express API routes
 │   ├── lib/
 │   │   ├── whisper.ts        # whisper.cpp wrapper (Phase 2)

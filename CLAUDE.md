@@ -21,7 +21,7 @@ Liftoff is a self-hosted daily training platform for SWE interview performance. 
 
 | Decision | Choice | Reason |
 |---|---|---|
-| Database | SQLite via `better-sqlite3` | Single user, file-based, zero infra, easy backup |
+| Database | SQLite via `node:sqlite` (built-in, Node 22+) | Single user, file-based, zero infra, no native build step |
 | ORM | None — raw SQL only | Transparency, simplicity |
 | File storage | Disk (`server/uploads/`) | Avoids browser storage limits, easy to back up |
 | Transcription | Whisper.cpp (local, Phase 2) | Nothing leaves the device |
@@ -38,7 +38,7 @@ Liftoff is a self-hosted daily training platform for SWE interview performance. 
 ```
 Frontend:      React + Vite (TypeScript)
 Backend:       Node.js + Express
-Database:      SQLite (better-sqlite3) — raw SQL, no ORM
+Database:      SQLite (node:sqlite, built-in Node 22+) — raw SQL, no ORM
 File storage:  Disk — server/uploads/*.webm
 Transcription: Whisper.cpp — runs locally, Phase 2
 AI review:     Anthropic Claude API — transcript only, no audio (Phase 2)
@@ -61,7 +61,8 @@ liftoff/
 │   ├── index.ts                     ← Express entry point
 │   ├── db/
 │   │   ├── schema.sql               ← all CREATE TABLE statements
-│   │   └── db.ts                    ← better-sqlite3 singleton
+│   │   ├── db.ts                    ← node:sqlite singleton
+│   │   └── seed.ts                  ← seeds question bank (npm run seed)
 │   ├── routes/
 │   │   ├── sessions.ts              ← GET/POST /api/sessions
 │   │   ├── questions.ts             ← GET /api/questions
@@ -434,6 +435,7 @@ NODE_ENV=development
 ## Notes for Claude Code
 
 - Always implement the schema exactly as written — do not add an ORM layer
+- Database uses `node:sqlite` (built into Node 22+, no install needed). Import with `import { DatabaseSync } from 'node:sqlite'`. There is no `.transaction()` helper — use `db.exec('BEGIN')` / `db.exec('COMMIT')` instead. `lastInsertRowid` is a `bigint`; wrap in `Number()` before serialising to JSON.
 - Phase 1 has zero AI dependencies — it must work with no `.env` set
 - The `uploads/` directory must be created on server start if it doesn't exist: `fs.mkdirSync(path, { recursive: true })`
 - Use `audio/webm;codecs=opus` for `MediaRecorder` — good browser support, small file size, accepted by Whisper
