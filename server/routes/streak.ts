@@ -15,13 +15,13 @@ function todayStr(): string {
 router.get('/', (_req: Request, res: Response) => {
   // Collect all distinct days that had at least one session or drill
   const sessionDates = (
-    db.prepare('SELECT recorded_at FROM sessions ORDER BY recorded_at DESC').all() as {
+    db.prepare('SELECT recorded_at FROM sessions ORDER BY recorded_at DESC').all() as unknown as {
       recorded_at: string
     }[]
   ).map((r) => toLocalDateStr(r.recorded_at))
 
   const drillDates = (
-    db.prepare('SELECT completed_at FROM drill_sessions ORDER BY completed_at DESC').all() as {
+    db.prepare('SELECT completed_at FROM drill_sessions ORDER BY completed_at DESC').all() as unknown as {
       completed_at: string
     }[]
   ).map((r) => toLocalDateStr(r.completed_at))

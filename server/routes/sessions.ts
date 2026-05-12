@@ -34,14 +34,14 @@ router.get('/', (req: Request, res: Response) => {
   }
 
   sql += ' ORDER BY recorded_at DESC'
-  const rows = db.prepare(sql).all(...params) as Session[]
+  const rows = db.prepare(sql).all(...params) as unknown as Session[]
   res.json(rows)
 })
 
 router.get('/:id', (req: Request, res: Response) => {
   const session = db
     .prepare('SELECT * FROM sessions WHERE id = ?')
-    .get(req.params.id) as Session | undefined
+    .get(req.params.id) as unknown as Session | undefined
 
   if (!session) return res.status(404).json({ error: 'Session not found' })
 
@@ -75,20 +75,36 @@ router.post(
     const audioPath = path.relative(process.cwd(), audioFile.path)
     const videoPath = videoFile ? path.relative(process.cwd(), videoFile.path) : null
 
+    const qid = metadata.question_id
+    const question_id =
+      typeof qid === 'number' && Number.isFinite(qid) ? qid : null
+    const t = metadata.type
+    const type = typeof t === 'string' && t.length > 0 ? t : 'self-improvement'
+    const d = metadata.duration_secs
+    const duration_secs =
+      typeof d === 'number' && Number.isFinite(d) ? d : null
+    const top = metadata.topic
+    const topic = typeof top === 'string' ? top : null
+    const sr = metadata.self_rating
+    const self_rating =
+      typeof sr === 'number' && Number.isFinite(sr) ? sr : null
+    const n = metadata.notes
+    const notes = typeof n === 'string' ? n : null
+
     const result = db
       .prepare(
         `INSERT INTO sessions (question_id, type, audio_path, video_path, duration_secs, topic, self_rating, notes)
          VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
       )
       .run(
-        metadata.question_id ?? null,
-        metadata.type ?? 'self-improvement',
+        question_id,
+        type,
         audioPath,
         videoPath,
-        metadata.duration_secs ?? null,
-        metadata.topic ?? null,
-        metadata.self_rating ?? null,
-        metadata.notes ?? null
+        duration_secs,
+        topic,
+        self_rating,
+        notes
       )
 
     res.status(201).json({ id: Number(result.lastInsertRowid) })
@@ -98,11 +114,20 @@ router.post(
 router.patch('/:id', (req: Request, res: Response) => {
   const { self_rating, notes, bookmarked } = req.body
   const fields: string[] = []
-  const params: unknown[] = []
+  const params: (string | number | null)[] = []
 
-  if (self_rating !== undefined) { fields.push('self_rating = ?'); params.push(self_rating) }
-  if (notes !== undefined) { fields.push('notes = ?'); params.push(notes) }
-  if (bookmarked !== undefined) { fields.push('bookmarked = ?'); params.push(bookmarked ? 1 : 0) }
+  if (self_rating !== undefined) {
+    fields.push('self_rating = ?')
+    params.push(typeof self_rating === 'number' ? self_rating : Number(self_rating))
+  }
+  if (notes !== undefined) {
+    fields.push('notes = ?')
+    params.push(typeof notes === 'string' ? notes : String(notes))
+  }
+  if (bookmarked !== undefined) {
+    fields.push('bookmarked = ?')
+    params.push(bookmarked ? 1 : 0)
+  }
 
   if (fields.length === 0) return res.status(400).json({ error: 'nothing to update' })
 

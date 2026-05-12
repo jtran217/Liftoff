@@ -19,14 +19,14 @@ router.get('/', (req: Request, res: Response) => {
   }
 
   sql += ' ORDER BY category, id'
-  const rows = db.prepare(sql).all(...params) as Question[]
+  const rows = db.prepare(sql).all(...params) as unknown as Question[]
   res.json(rows)
 })
 
 router.get('/categories', (_req: Request, res: Response) => {
   const rows = db
     .prepare('SELECT DISTINCT category FROM questions ORDER BY category')
-    .all() as { category: string }[]
+    .all() as unknown as { category: string }[]
   res.json(rows.map((r) => r.category))
 })
 
@@ -41,7 +41,7 @@ router.get('/random', (req: Request, res: Response) => {
   }
 
   sql += ' ORDER BY RANDOM() LIMIT 1'
-  const row = db.prepare(sql).get(...params) as Question | undefined
+  const row = db.prepare(sql).get(...params) as unknown as Question | undefined
   if (!row) return res.status(404).json({ error: 'No questions found' })
   res.json(row)
 })

@@ -44,7 +44,9 @@ const questions: { category: string; lp_tag: string | null; text: string; diffic
   { category: 'Throughput & ownership', lp_tag: null, text: 'Describe a situation where you saw technical debt causing real problems and took steps to address it.', difficulty: 3 },
 ]
 
-const existing = db.prepare('SELECT COUNT(*) as count FROM questions').get() as { count: number }
+const existing = db
+  .prepare('SELECT COUNT(*) as count FROM questions')
+  .get() as unknown as { count: number }
 
 if (existing.count === 0) {
   const insert = db.prepare(
