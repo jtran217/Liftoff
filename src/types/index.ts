@@ -22,7 +22,6 @@ export interface Session {
   self_rating: number | null
   notes: string | null
   bookmarked: number
-  // joined from ai_reviews when fetching a single session
   review?: AiReview
 }
 
