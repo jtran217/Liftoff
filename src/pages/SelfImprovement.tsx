@@ -15,7 +15,7 @@ const RECORDING_SECS  = 60
 export default function SelfImprovement() {
   const [stage, setStage]   = useState<Stage>('spin')
   const [topic, setTopic]   = useState<string | null>(null)
-  const [saved, setSaved]   = useState(false)
+  const [savedId, setSavedId] = useState<number | null>(null)
   const [saving, setSaving] = useState(false)
 
   const brainstormTimer = useTimer(BRAINSTORM_SECS, handleBrainstormComplete)
@@ -59,13 +59,13 @@ export default function SelfImprovement() {
   async function handleSave() {
     if (!recorder.audioBlob || !topic) return
     setSaving(true)
-    await saveSession(recorder.audioBlob, {
+    const id = await saveSession(recorder.audioBlob, {
       type: 'self-improvement',
       topic,
       duration_secs: recorder.durationSecs,
     })
     setSaving(false)
-    setSaved(true)
+    setSavedId(id)
   }
 
   function handleReset() {
@@ -73,7 +73,7 @@ export default function SelfImprovement() {
     recordingTimer.reset()
     setStage('spin')
     setTopic(null)
-    setSaved(false)
+    setSavedId(null)
   }
 
   return (
@@ -84,7 +84,6 @@ export default function SelfImprovement() {
 
       <div className="flex-1 flex flex-col items-center justify-center gap-8">
 
-        {/* ── Spin ── */}
         {stage === 'spin' && (
           <>
             <div className="text-center">
@@ -94,8 +93,6 @@ export default function SelfImprovement() {
             <SpinWheel onTopicSelected={handleTopicSelected} />
           </>
         )}
-
-        {/* ── Prep: brainstorm or go straight in ── */}
         {stage === 'prep' && topic && (
           <div className="flex flex-col items-center gap-6 w-full max-w-sm">
             <div className="text-center">
@@ -103,13 +100,11 @@ export default function SelfImprovement() {
               <p className="text-gray-400 text-sm mt-1">You've got your topic</p>
             </div>
 
-            {/* Topic card */}
             <div className="w-full bg-gray-900 border border-gray-700 rounded-2xl px-6 py-5 text-center">
               <p className="text-xs text-gray-500 uppercase tracking-widest mb-2">Topic</p>
               <p className="text-white font-semibold text-lg leading-snug">"{topic}"</p>
             </div>
 
-            {/* Options */}
             <div className="flex flex-col gap-3 w-full">
               <button
                 onClick={handleStartBrainstorm}
@@ -136,7 +131,6 @@ export default function SelfImprovement() {
           </div>
         )}
 
-        {/* ── Brainstorm countdown ── */}
         {stage === 'brainstorm' && topic && (
           <div className="flex flex-col items-center gap-8 w-full max-w-sm">
             <div className="text-center">
@@ -144,7 +138,6 @@ export default function SelfImprovement() {
               <p className="text-gray-400 text-sm mt-1">Organise your thoughts — recording starts after</p>
             </div>
 
-            {/* Topic reminder */}
             <p className="text-gray-300 text-sm text-center">
               "{topic}"
             </p>
@@ -164,7 +157,6 @@ export default function SelfImprovement() {
           </div>
         )}
 
-        {/* ── Recording ── */}
         {stage === 'recording' && topic && (
           <div className="flex flex-col items-center gap-8 w-full max-w-sm">
             <div className="text-center">
@@ -193,15 +185,19 @@ export default function SelfImprovement() {
           </div>
         )}
 
-        {/* ── Done ── */}
         {stage === 'done' && (
           <div className="flex flex-col items-center gap-6 w-full max-w-xs">
             <div className="text-center">
               <h1 className="text-2xl font-bold">Done</h1>
               <p className="text-gray-400 text-sm mt-1">Great work</p>
             </div>
-            {saved ? (
-              <p className="text-green-400 font-medium">Session saved ✓</p>
+            {savedId !== null ? (
+              <>
+                <p className="text-green-400 font-medium">Session saved</p>
+                <Link to={`/sessions/${savedId}`} className="btn-secondary">
+                  Play back & rate
+                </Link>
+              </>
             ) : (
               <button
                 onClick={handleSave}

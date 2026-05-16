@@ -1,7 +1,14 @@
 {
   "permissions": {
     "allow": [
-      "Bash(Get-ChildItem -Path . -Name)"
+      "Bash(Get-ChildItem -Path . -Name)",
+      "Bash(npx tsc *)",
+      "Bash(npx vite *)",
+      "Bash(npx tsx *)",
+      "Bash(Start-Sleep -Seconds 2)",
+      "Bash(curl -s http://localhost:3001/api/streak)",
+      "Bash(curl -s http://localhost:3001/api/questions/categories)",
+      "Bash(curl -s http://localhost:3001/api/drills)"
     ]
   }
 }
