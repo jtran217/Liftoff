@@ -4,6 +4,7 @@ import path from 'path'
 import fs from 'fs'
 import db from '../db/db'
 import { Session } from '../../src/types'
+import { transcribe } from '../lib/whisper'
 
 const UPLOADS_DIR = path.resolve(process.cwd(), process.env.UPLOADS_DIR ?? 'server/uploads')
 fs.mkdirSync(UPLOADS_DIR, { recursive: true })
@@ -107,7 +108,16 @@ router.post(
         notes
       )
 
-    res.status(201).json({ id: Number(result.lastInsertRowid) })
+    const sessionId = Number(result.lastInsertRowid)
+
+    transcribe(audioPath).then((transcript) => {
+      if (transcript) {
+        db.prepare('UPDATE sessions SET transcript = ? WHERE id = ?').run(transcript, sessionId)
+        console.log(`[whisper] transcript saved for session ${sessionId}`)
+      }
+    }).catch((err) => console.error('[whisper] transcription error:', err))
+
+    res.status(201).json({ id: sessionId })
   }
 )
 

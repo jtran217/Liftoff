@@ -24,7 +24,7 @@ Liftoff is a self-hosted daily training platform for SWE interview performance. 
 | Database | SQLite via `node:sqlite` (built-in, Node 22+) | Single user, file-based, zero infra, no native build step |
 | ORM | None — raw SQL only | Transparency, simplicity |
 | File storage | Disk (`server/uploads/`) | Avoids browser storage limits, easy to back up |
-| Transcription | Whisper.cpp (local, Phase 2) | Nothing leaves the device |
+| Transcription | OpenAI Whisper API (`whisper-1`) | whisper.cpp too slow on target hardware (2013 CPU); audio sent to OpenAI only for transcription |
 | AI review input | Transcript only | Audio is never sent to the Anthropic API |
 | Auth | None | Single-user self-hosted tool |
 | Frontend | React + Vite (TypeScript) | Fast dev server, simple static build |
@@ -40,7 +40,7 @@ Frontend:      React + Vite (TypeScript)
 Backend:       Node.js + Express
 Database:      SQLite (node:sqlite, built-in Node 22+) — raw SQL, no ORM
 File storage:  Disk — server/uploads/*.webm
-Transcription: Whisper.cpp — runs locally, Phase 2
+Transcription: OpenAI Whisper API (whisper-1) — audio sent to OpenAI for transcription only
 AI review:     Anthropic Claude API — transcript only, no audio (Phase 2)
 Waveform:      WaveSurfer.js v7
 Styling:       Tailwind CSS
@@ -411,12 +411,17 @@ Return only valid JSON. No markdown, no preamble.
 > Phase 1 works with no `.env` set — zero AI dependencies.
 
 ### Phase 2 — Transcription + AI review
-1. Whisper.cpp integration — run on session save, store in `sessions.transcript`
-2. `POST /api/reviews` — Claude API call using prompt templates above, save to `ai_reviews`
-3. Review UI on session detail — STAR breakdown, scores, filler word highlights
-4. Self Improvement feedback card — delivery metrics + coaching notes
-5. Comparison feature — select two sessions answering the same question, AI delta summary
-6. Filler word timestamps highlighted on WaveSurfer waveform
+
+> Implement everything in code. Whisper binary path and model path come from `WHISPER_BIN` / `WHISPER_MODEL` env vars — if unset, transcription is skipped gracefully. Do not gate implementation on manual setup being done first.
+
+1. `server/lib/whisper.ts` — call OpenAI Whisper API (`whisper-1`), return transcript string; skip silently if `OPENAI_API_KEY` is not set ✅
+2. Hook transcription into `POST /api/sessions` — runs in background after audio is saved, writes result to `sessions.transcript` ✅
+3. `server/lib/anthropic.ts` — Claude API wrapper using prompt templates below
+4. `POST /api/reviews` — call Claude with transcript, save results to `ai_reviews`
+5. Review UI on session detail — wire `FeedbackCard` (already built) to real data: STAR breakdown, scores, coaching notes
+6. Self Improvement feedback card — delivery metrics + coaching notes
+7. Comparison feature — select two sessions answering the same question, AI delta summary
+8. Filler word timestamps highlighted on WaveSurfer waveform
 
 ### Phase 3 — Polish
 1. Custom question editor (add/edit/delete from UI)
@@ -430,7 +435,8 @@ Return only valid JSON. No markdown, no preamble.
 
 ```env
 # .env.example
-ANTHROPIC_API_KEY=sk-ant-...   # required for Phase 2 AI review only
+ANTHROPIC_API_KEY=sk-ant-...   # required for Phase 2 AI review
+OPENAI_API_KEY=sk-...          # required for Phase 2 transcription (Whisper API)
 PORT=3001
 UPLOADS_DIR=./server/uploads
 NODE_ENV=development
