@@ -82,7 +82,8 @@ liftoff/
 │   │   ├── BehaviouralPrep.tsx
 │   │   ├── SelfImprovement.tsx      ← spin wheel mode
 │   │   ├── SpeechGym.tsx
-│   │   └── History.tsx
+│   │   ├── History.tsx
+│   │   └── SessionDetail.tsx        ← /sessions/:id — playback, rating, feedback
 │   ├── components/
 │   │   ├── ModeSelector.tsx         ← landing: pick Behavioural or Self Improvement
 │   │   ├── SpinWheel.tsx            ← animated CSS spin wheel (Self Improvement)
@@ -226,10 +227,14 @@ CREATE TABLE drill_sessions (
 | Method | Path | Description | Phase |
 |---|---|---|---|
 | GET | `/api/questions` | Question bank. Supports `?category=` and `?difficulty=` | P1 |
+| GET | `/api/questions/categories` | Distinct category list | P1 |
+| GET | `/api/questions/random` | Random question, optional `?category=` | P1 |
 | POST | `/api/sessions` | Save session (multipart: audio blob + metadata JSON) | P1 |
 | GET | `/api/sessions` | List sessions. Supports `?type=` and `?question_id=` | P1 |
 | GET | `/api/sessions/:id` | Single session with linked review if present | P1 |
+| PATCH | `/api/sessions/:id` | Update `self_rating`, `notes`, and/or `bookmarked` | P1 |
 | GET | `/api/drills` | Exercise library | P1 |
+| POST | `/api/drills/complete` | Save drill completion (multipart: optional audio + metadata) | P1 |
 | GET | `/api/streak` | Current streak + today's completion state | P1 |
 | POST | `/api/reviews` | Trigger AI review for a session (requires transcript) | P2 |
 | POST | `/api/comparisons` | AI delta between two session IDs | P2 |
@@ -390,19 +395,20 @@ Return only valid JSON. No markdown, no preamble.
 
 ## Build Phases
 
-### Phase 1 — Core habit loop (no AI dependencies)
-1. Monorepo scaffold: `server/` + `src/` as above
-2. `schema.sql` with all 5 tables + seed script (30 questions)
-3. Express setup with all P1 routes
-4. Mode selector landing screen
-5. **Self Improvement:** category picker → spin wheel → 60s timer → recorder → save to disk + DB
-6. **Behavioural Prep:** competency picker → question display + STAR guide → recorder → save to disk + DB
-7. Playback screen: WaveSurfer.js waveform, optional video, self-rating + notes form
-8. Speech gym: exercise library, guided timer, completion tracking
-9. Dashboard: streak counter, today's plan, 14-day heatmap, summary metrics
-10. History: calendar heatmap, filterable session log, bookmarks view
+### Phase 1 — Core habit loop (no AI dependencies) ✅ COMPLETE
 
-> Phase 1 must work with no `.env` set — zero AI dependencies.
+1. ✅ Monorepo scaffold: `server/` + `src/` as above
+2. ✅ `schema.sql` with all 5 tables + seed script (30 questions — `npm run seed`)
+3. ✅ Express setup with all P1 routes
+4. ✅ Mode selector landing screen (Dashboard with StreakCounter + ActivityHeatmap)
+5. ✅ **Self Improvement:** spin wheel → 60s brainstorm timer → recorder → save to disk + DB → link to session detail
+6. ✅ **Behavioural Prep:** competency picker + random → question display + STAR guide → recorder (2 min warn / 3 min hard stop) → save to disk + DB → link to session detail
+7. ✅ Playback screen (`SessionDetail.tsx`): WaveSurfer.js waveform, optional video, self-rating + notes form, FeedbackCard placeholder
+8. ✅ Speech gym: exercise library, guided timer per drill, completion tracking — 5 drills (pen, paragraph, tongue twister, pacing, projection)
+9. ✅ Dashboard: streak counter, 14-day heatmap, nav links to all modes
+10. ✅ History: 14-day heatmap, filterable session log (All / Behavioural / Self Improvement / Bookmarked), bookmark toggle
+
+> Phase 1 works with no `.env` set — zero AI dependencies.
 
 ### Phase 2 — Transcription + AI review
 1. Whisper.cpp integration — run on session save, store in `sessions.transcript`
@@ -444,3 +450,19 @@ NODE_ENV=development
 - Spin wheel: pick the winning topic before the animation starts, animate to that position over ~2.5s. Do not randomize mid-spin.
 - Vite proxies `/api/*` to `localhost:3001` in dev — configure in `vite.config.ts`
 - Audio is never sent to the Anthropic API — transcripts only
+
+### Implementation gotchas discovered in Phase 1
+
+**Audio URL helper (Windows path issue):** `audio_path` stored in the DB uses OS path separators (backslashes on Windows). Do not use the stored path directly as a URL. Extract only the filename: `const filename = storedPath.replace(/\\/g, '/').split('/').pop()!; return '/uploads/' + filename`
+
+**MediaRecorder blob race condition:** `stopRecording()` calls `mediaRecorder.stop()` — the blob is set asynchronously in the `onstop` event, not synchronously. Do not read `recorder.audioBlob` immediately after calling `stopRecording()`. Instead, use an `awaitingBlob` state flag and a `useEffect` that fires when `recorder.isRecording` becomes false:
+```tsx
+useEffect(() => {
+  if (!awaitingBlob || recorder.isRecording) return
+  onFinish({ audioBlob: recorder.audioBlob })
+}, [awaitingBlob, recorder.isRecording, recorder.audioBlob])
+```
+
+**Per-drill timer:** `useTimer` must be instantiated inside the per-drill component (e.g. `DrillRunner`), not at the parent level. The parent doesn't know the drill duration at mount time, and `reset()` always resets to the initial total — if initialized with 0 it will immediately complete.
+
+**`useTimer` callback stability:** The completion callback passed to `useTimer` is captured in a ref inside the hook — it is safe to pass an inline function without memoization.
