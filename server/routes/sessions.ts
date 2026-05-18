@@ -46,11 +46,18 @@ router.get('/:id', (req: Request, res: Response) => {
 
   if (!session) return res.status(404).json({ error: 'Session not found' })
 
-  const review = db
+  const reviewRow = db
     .prepare('SELECT * FROM ai_reviews WHERE session_id = ? ORDER BY created_at DESC LIMIT 1')
-    .get(session.id)
+    .get(session.id) as Record<string, unknown> | undefined
 
-  res.json({ ...session, review: review ?? null })
+  const review = reviewRow ? {
+    ...reviewRow,
+    star_feedback: reviewRow.star_feedback ? JSON.parse(reviewRow.star_feedback as string) : null,
+    filler_words: reviewRow.filler_words ? JSON.parse(reviewRow.filler_words as string) : null,
+    ai_notes: reviewRow.ai_notes ? JSON.parse(reviewRow.ai_notes as string) : null,
+  } : null
+
+  res.json({ ...session, review })
 })
 
 router.post(
