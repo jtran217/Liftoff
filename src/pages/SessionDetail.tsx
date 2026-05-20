@@ -30,17 +30,40 @@ export default function SessionDetail() {
   const [session, setSession] = useState<Session | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(false)
+  const [generating, setGenerating] = useState(false)
+  const [generateError, setGenerateError] = useState<string | null>(null)
 
-  useEffect(() => {
+  function fetchSession() {
     if (!id) return
-    fetch(`/api/sessions/${id}`)
+    return fetch(`/api/sessions/${id}`)
       .then(r => {
         if (!r.ok) throw new Error('not found')
         return r.json()
       })
       .then(data => { setSession(data); setLoading(false) })
       .catch(() => { setError(true); setLoading(false) })
-  }, [id])
+  }
+
+  useEffect(() => { fetchSession() }, [id])
+
+  async function handleGenerateFeedback() {
+    if (!session) return
+    setGenerating(true)
+    setGenerateError(null)
+    const res = await fetch('/api/reviews', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ session_id: session.id }),
+    })
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({})) as { error?: string }
+      setGenerateError(body.error ?? 'Failed to generate feedback')
+      setGenerating(false)
+      return
+    }
+    await fetchSession()
+    setGenerating(false)
+  }
 
   const backPath = session?.type === 'behavioural' ? '/behavioural'
     : session?.type === 'self-improvement' ? '/self-improvement'
@@ -102,7 +125,28 @@ export default function SessionDetail() {
 
         <div className="w-full">
           <p className="text-xs text-gray-500 uppercase tracking-widest mb-3">AI Feedback</p>
-          <FeedbackCard review={session.review} />
+
+          {session.review ? (
+            <FeedbackCard review={session.review} />
+          ) : session.transcript ? (
+            <div className="flex flex-col gap-3">
+              {generateError && (
+                <p className="text-xs text-red-400">{generateError}</p>
+              )}
+              <button
+                onClick={handleGenerateFeedback}
+                disabled={generating}
+                className="btn-primary disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                {generating ? 'Generating…' : 'Generate AI feedback'}
+              </button>
+            </div>
+          ) : (
+            <div className="px-5 py-5 bg-gray-900 border border-gray-700 rounded-2xl text-center">
+              <p className="text-sm text-gray-500">Transcription in progress…</p>
+              <p className="text-xs text-gray-600 mt-1">Check back in a few seconds</p>
+            </div>
+          )}
         </div>
 
       </div>
