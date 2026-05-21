@@ -73,6 +73,64 @@ AI notes must be specific and actionable — reference exact moments in the tran
 Return only valid JSON. No markdown, no preamble.`
 }
 
+export interface RawComparison {
+  improvements: string[]
+  regressions: string[]
+  unchanged: string[]
+  summary: string
+}
+
+export async function generateComparison(
+  question: string,
+  transcriptA: string,
+  transcriptB: string,
+): Promise<RawComparison | null> {
+  if (!process.env.ANTHROPIC_API_KEY) return null
+
+  const prompt = `You are an interview coach comparing two attempts at the same behavioural question.
+
+Question: ${question}
+
+Baseline attempt:
+"""
+${transcriptA}
+"""
+
+New attempt:
+"""
+${transcriptB}
+"""
+
+Compare the two attempts. Focus on what changed — both improvements and regressions.
+
+Return a JSON object with this exact shape:
+{
+  "improvements": ["<specific improvement>"],
+  "regressions": ["<specific regression>"],
+  "unchanged": ["<aspect that stayed the same>"],
+  "summary": "<2-3 sentence overall narrative>"
+}
+
+Be specific — reference actual content from the transcripts. No generic advice.
+Return only valid JSON. No markdown, no preamble.`
+
+  const message = await client.messages.create({
+    model: 'claude-haiku-4-5-20251001',
+    max_tokens: 1024,
+    messages: [{ role: 'user', content: prompt }],
+  })
+
+  const text = message.content[0].type === 'text' ? message.content[0].text : null
+  if (!text) return null
+
+  try {
+    return JSON.parse(text) as RawComparison
+  } catch {
+    console.error('[anthropic] failed to parse comparison response:', text)
+    return null
+  }
+}
+
 function buildBehaviouralPrompt({ transcript, duration_secs, question, category }: ReviewInput): string {
   return `You are an interview coach evaluating a SWE behavioural answer.
 

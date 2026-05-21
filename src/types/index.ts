@@ -55,6 +55,14 @@ export interface Streak {
   completedToday: boolean
 }
 
+export interface Comparison {
+  id: number
+  improvements: string[]
+  regressions: string[]
+  unchanged: string[]
+  summary: string
+}
+
 export type DrillType =
   | 'pen_drill'
   | 'paragraph_read'
