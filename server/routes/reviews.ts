@@ -1,6 +1,7 @@
 import { Router, Request, Response } from 'express'
 import db from '../db/db'
 import { generateReview } from '../lib/anthropic'
+import { transcribeWithTimestamps } from '../lib/whisper'
 import { Session, Question } from '../../src/types'
 
 const router = Router()
@@ -23,13 +24,16 @@ router.post('/', async (req: Request, res: Response) => {
       .get(session.question_id) as unknown as Question | undefined
   }
 
-  const raw = await generateReview({
-    transcript: session.transcript,
-    type: session.type,
-    duration_secs: session.duration_secs,
-    question: question?.text ?? null,
-    category: question?.category ?? null,
-  })
+  const [raw, fillerTimestamps] = await Promise.all([
+    generateReview({
+      transcript: session.transcript,
+      type: session.type,
+      duration_secs: session.duration_secs,
+      question: question?.text ?? null,
+      category: question?.category ?? null,
+    }),
+    transcribeWithTimestamps(session.audio_path),
+  ])
 
   if (!raw) return res.status(500).json({ error: 'AI review failed' })
 
@@ -37,6 +41,7 @@ router.post('/', async (req: Request, res: Response) => {
     ? {
         count: raw.filler_count ?? Object.values(raw.filler_words).reduce((a, b) => a + b, 0),
         words: Object.entries(raw.filler_words).map(([word, count]) => ({ word, count })),
+        timestamps: fillerTimestamps ?? [],
       }
     : null
 

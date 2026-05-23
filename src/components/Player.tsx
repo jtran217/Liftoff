@@ -7,6 +7,7 @@ interface PlayerProps {
   sessionId: number
   initialRating?: number | null
   initialNotes?: string | null
+  fillerTimestamps?: { word: string; start: number }[] | null
   onSaved?: () => void
 }
 
@@ -22,6 +23,7 @@ export default function Player({
   sessionId,
   initialRating,
   initialNotes,
+  fillerTimestamps,
   onSaved,
 }: PlayerProps) {
   const containerRef = useRef<HTMLDivElement>(null)
@@ -79,9 +81,18 @@ export default function Player({
 
   return (
     <div className="w-full flex flex-col gap-5">
-      {/* Waveform */}
       <div className="bg-gray-900 rounded-xl px-4 pt-4 pb-3 border border-gray-700">
-        <div ref={containerRef} />
+        <div className="relative">
+          <div ref={containerRef} />
+          {duration > 0 && fillerTimestamps?.map((ts, i) => (
+            <div
+              key={i}
+              title={ts.word}
+              style={{ left: `${(ts.start / duration) * 100}%` }}
+              className="absolute bottom-0 w-0.5 h-3 bg-yellow-400 opacity-75 rounded-full pointer-events-none"
+            />
+          ))}
+        </div>
         <div className="flex items-center gap-3 mt-3">
           <button
             onClick={togglePlay}

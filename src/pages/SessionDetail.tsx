@@ -154,6 +154,7 @@ export default function SessionDetail() {
           sessionId={session.id}
           initialRating={session.self_rating}
           initialNotes={session.notes}
+          fillerTimestamps={session.review?.filler_words?.timestamps}
         />
 
         <div className="w-full">

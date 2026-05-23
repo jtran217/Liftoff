@@ -48,6 +48,7 @@ export interface StarFeedback {
 export interface FillerWords {
   count: number
   words: { word: string; count: number }[]
+  timestamps?: { word: string; start: number }[]
 }
 
 export interface Streak {
