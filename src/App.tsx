@@ -5,6 +5,7 @@ import SelfImprovement from './pages/SelfImprovement'
 import SpeechGym from './pages/SpeechGym'
 import History from './pages/History'
 import SessionDetail from './pages/SessionDetail'
+import QuestionEditor from './pages/QuestionEditor'
 
 export default function App() {
   return (
@@ -16,6 +17,7 @@ export default function App() {
         <Route path="/speech-gym" element={<SpeechGym />} />
         <Route path="/history" element={<History />} />
         <Route path="/sessions/:id" element={<SessionDetail />} />
+        <Route path="/questions" element={<QuestionEditor />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </BrowserRouter>

@@ -133,6 +133,10 @@ export default function BehaviouralPrep() {
               Random question
             </button>
 
+            <Link to="/questions" className="text-xs text-gray-600 hover:text-gray-400 transition-colors text-center">
+              Manage custom questions
+            </Link>
+
             {selectedCategory && questions.length > 0 && (
               <div className="flex flex-col gap-2 w-full">
                 <p className="text-xs text-gray-500 uppercase tracking-widest">{selectedCategory}</p>
