@@ -157,6 +157,25 @@ export default function SessionDetail() {
           fillerTimestamps={session.review?.filler_words?.timestamps}
         />
 
+        <div className="w-full flex gap-3">
+          <a
+            href={uploadUrl(session.audio_path)}
+            download
+            className="text-xs text-gray-600 hover:text-gray-400 transition-colors"
+          >
+            Download audio
+          </a>
+          {session.video_path && (
+            <a
+              href={uploadUrl(session.video_path)}
+              download
+              className="text-xs text-gray-600 hover:text-gray-400 transition-colors"
+            >
+              Download video
+            </a>
+          )}
+        </div>
+
         <div className="w-full">
           <p className="text-xs text-gray-500 uppercase tracking-widest mb-3">AI Feedback</p>
 

@@ -78,7 +78,16 @@ export default function History() {
 
       <div className="flex-1 flex flex-col max-w-lg mx-auto w-full pt-6 gap-6">
 
-        <h1 className="text-2xl font-bold">History</h1>
+        <div className="flex items-center justify-between">
+          <h1 className="text-2xl font-bold">History</h1>
+          <a
+            href="/api/export/sessions.csv"
+            download
+            className="text-xs text-gray-600 hover:text-gray-400 transition-colors"
+          >
+            Export CSV
+          </a>
+        </div>
 
         <ActivityHeatmap />
 
