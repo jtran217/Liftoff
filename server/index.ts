@@ -10,6 +10,7 @@ import drillsRouter from './routes/drills'
 import streakRouter from './routes/streak'
 import reviewsRouter from './routes/reviews'
 import comparisonsRouter from './routes/comparisons'
+import progressRouter from './routes/progress'
 
 const PORT = Number(process.env.PORT ?? 3001)
 const UPLOADS_DIR = path.resolve(process.cwd(), process.env.UPLOADS_DIR ?? 'server/uploads')
@@ -28,6 +29,7 @@ app.use('/api/drills', drillsRouter)
 app.use('/api/streak', streakRouter)
 app.use('/api/reviews', reviewsRouter)
 app.use('/api/comparisons', comparisonsRouter)
+app.use('/api/progress', progressRouter)
 
 app.listen(PORT, () => {
   console.log(`Liftoff server running on http://localhost:${PORT}`)

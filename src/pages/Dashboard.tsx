@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom'
 import StreakCounter from '../components/StreakCounter'
 import ActivityHeatmap from '../components/ActivityHeatmap'
+import ProgressDashboard from '../components/ProgressDashboard'
 
 export default function Dashboard() {
   return (
@@ -12,6 +13,7 @@ export default function Dashboard() {
         </div>
         <StreakCounter />
         <ActivityHeatmap />
+        <ProgressDashboard />
         <div className="flex flex-col gap-3">
           <p className="text-xs text-gray-500 uppercase tracking-widest">Today's session</p>
           <Link to="/behavioural" className="btn-primary">
