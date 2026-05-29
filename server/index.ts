@@ -33,6 +33,12 @@ app.use('/api/comparisons', comparisonsRouter)
 app.use('/api/progress', progressRouter)
 app.use('/api/export', exportRouter)
 
+if (process.env.NODE_ENV === 'production') {
+  const STATIC_DIR = path.resolve(process.cwd(), 'dist')
+  app.use(express.static(STATIC_DIR))
+  app.get('*', (_req, res) => res.sendFile(path.join(STATIC_DIR, 'index.html')))
+}
+
 app.listen(PORT, () => {
   console.log(`Liftoff server running on http://localhost:${PORT}`)
 })

@@ -1,0 +1,15 @@
+services:
+  app:
+    build: .
+    ports:
+      - "3001:3001"
+    volumes:
+      - liftoff-data:/app/data
+    environment:
+      - UPLOADS_DIR=/app/data/uploads
+    env_file:
+      - .env
+    restart: unless-stopped
+
+volumes:
+  liftoff-data:

@@ -4,7 +4,7 @@ import path from 'path'
 
 const DB_DIR = path.resolve(process.cwd(), 'data')
 const DB_PATH = path.join(DB_DIR, 'liftoff.db')
-const SCHEMA_PATH = path.join(__dirname, 'schema.sql')
+const SCHEMA_PATH = path.resolve(process.cwd(), 'server/db/schema.sql')
 
 fs.mkdirSync(DB_DIR, { recursive: true })
 
