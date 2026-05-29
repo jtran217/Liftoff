@@ -46,7 +46,9 @@ function randomFrom<T>(arr: T[]): T {
 }
 
 
-type Stage = 'list' | 'running' | 'done'
+const SUPPORTS_CUSTOM_TEXT = new Set(['pen_drill', 'paragraph_read'])
+
+type Stage = 'list' | 'pre-run' | 'running' | 'done'
 
 interface DrillResult { elapsedSecs: number; audioBlob: Blob | null }
 
@@ -54,6 +56,8 @@ export default function SpeechGym() {
   const [drills, setDrills] = useState<Drill[]>([])
   const [stage, setStage] = useState<Stage>('list')
   const [activeDrill, setActiveDrill] = useState<Drill | null>(null)
+  const [customText, setCustomText] = useState('')
+  const [pendingCustomText, setPendingCustomText] = useState('')
   const [result, setResult] = useState<DrillResult | null>(null)
   const [saving, setSaving] = useState(false)
 
@@ -64,6 +68,17 @@ export default function SpeechGym() {
   function handleStart(drill: Drill) {
     setActiveDrill(drill)
     setResult(null)
+    if (SUPPORTS_CUSTOM_TEXT.has(drill.id)) {
+      setPendingCustomText('')
+      setStage('pre-run')
+    } else {
+      setCustomText('')
+      setStage('running')
+    }
+  }
+
+  function handleConfirmCustomText(text: string) {
+    setCustomText(text.trim())
     setStage('running')
   }
 
@@ -90,6 +105,7 @@ export default function SpeechGym() {
   function handleBack() {
     setStage('list')
     setActiveDrill(null)
+    setCustomText('')
   }
 
   return (
@@ -133,10 +149,46 @@ export default function SpeechGym() {
           </>
         )}
 
+        {stage === 'pre-run' && activeDrill && (
+          <div className="flex flex-col gap-5 w-full">
+            <div className="text-center">
+              <h2 className="text-xl font-bold">{activeDrill.label}</h2>
+              <p className="text-gray-500 text-sm mt-1">Paste your own text, or use a random passage</p>
+            </div>
+            <textarea
+              value={pendingCustomText}
+              onChange={e => setPendingCustomText(e.target.value)}
+              placeholder="Paste your own text here…"
+              rows={7}
+              className="w-full bg-gray-900 border border-gray-700 rounded-xl px-4 py-3 text-sm text-white placeholder-gray-600 resize-none focus:outline-none focus:border-indigo-500 transition-colors"
+            />
+            <button
+              onClick={() => handleConfirmCustomText(pendingCustomText)}
+              disabled={!pendingCustomText.trim()}
+              className="btn-primary disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              Use my text
+            </button>
+            <button
+              onClick={() => handleConfirmCustomText('')}
+              className="btn-secondary"
+            >
+              Use random passage
+            </button>
+            <button
+              onClick={handleBack}
+              className="text-xs text-gray-600 hover:text-gray-400 transition-colors text-center"
+            >
+              ← Back
+            </button>
+          </div>
+        )}
+
         {stage === 'running' && activeDrill && (
           <DrillRunner
             key={activeDrill.id}
             drill={activeDrill}
+            customText={customText || null}
             onFinish={handleFinish}
           />
         )}
@@ -168,10 +220,11 @@ export default function SpeechGym() {
 
 interface DrillRunnerProps {
   drill: Drill
+  customText: string | null
   onFinish: (result: DrillResult) => void
 }
 
-function DrillRunner({ drill, onFinish }: DrillRunnerProps) {
+function DrillRunner({ drill, customText, onFinish }: DrillRunnerProps) {
   const startRef = useRef(Date.now())
   const recorder = useRecorder()
   const timer = useTimer(drill.durationSecs, handleComplete)
@@ -274,13 +327,13 @@ function DrillRunner({ drill, onFinish }: DrillRunnerProps) {
 
       {drill.id === 'pen_drill' && (
         <PenDrillContent
-          paragraph={contentRef.current.penParagraph}
+          paragraph={customText ?? contentRef.current.penParagraph}
           recorder={recorder}
         />
       )}
       {drill.id === 'paragraph_read' && (
         <ParagraphReadContent
-          passage={contentRef.current.passage}
+          passage={customText ?? contentRef.current.passage}
           recorder={recorder}
         />
       )}
